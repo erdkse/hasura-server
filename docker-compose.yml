@@ -1,0 +1,50 @@
+version: '3.6'
+
+networks:
+  proxy:
+    external: true
+  local:
+    external: false
+
+services:
+  postgres:
+    image: postgres:12.2
+    container_name: hasura-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      PGDATA: /data/postgres
+    volumes:
+      - $PWD/postgres-data:/data/postgres
+    restart: unless-stopped
+    networks:
+      - local
+
+  hasura:
+    image: hasura/graphql-engine:v1.2.0-beta.2
+    container_name: hasura-graphql
+    depends_on:
+      - postgres
+    restart: unless-stopped
+    environment:
+      HASURA_GRAPHQL_DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/postgres
+      HASURA_GRAPHQL_ENABLE_CONSOLE: 'true' # set to "false" to disable console
+      HASURA_GRAPHQL_ENABLED_LOG_TYPES: startup, http-log, webhook-log, websocket-log, query-log
+      HASURA_GRAPHQL_ADMIN_SECRET: ${HASURA_ADMIN_SECRET}
+      HASURA_GRAPHQL_JWT_SECRET: ${HASURA_JWT_SECRET}
+    networks:
+      - local
+      - proxy
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.hasura.entrypoints=http'
+      - 'traefik.http.routers.hasura.rule=Host(`${HOST}`)'
+      - 'traefik.http.middlewares.hasura-https-redirect.redirectscheme.scheme=https'
+      - 'traefik.http.routers.hasura.middlewares=hasura-https-redirect'
+      - 'traefik.http.routers.hasura-secure.entrypoints=https'
+      - 'traefik.http.routers.hasura-secure.rule=Host(`${HOST}`)'
+      - 'traefik.http.routers.hasura-secure.tls=true'
+      - 'traefik.http.routers.hasura-secure.tls.certresolver=http'
+      - 'traefik.http.routers.hasura-secure.service=hasura'
+      - 'traefik.http.services.hasura.loadbalancer.server.port=8080'
+      - 'traefik.docker.network=proxy'
