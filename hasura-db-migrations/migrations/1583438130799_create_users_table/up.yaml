@@ -8,7 +8,7 @@
          "ID" UUID UNIQUE NOT NULL PRIMARY KEY DEFAULT gen_random_uuid(),
          "auth_user_id" VARCHAR(255) UNIQUE NOT NULL,
          "email" VARCHAR(255) UNIQUE NOT NULL,
-         "data" JSONB UNIQUE NOT NULL,
+         "data" JSONB NOT NULL,
          "created_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
          "updated_at" TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
